@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>服务器状态监控</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --primary-color: #6c5ce7;
+      --success-color: #00b894;
+      --danger-color: #d63031;
+      --warning-color: #fdcb6e;
+      --dark-color: #2d3436;
+      --light-color: #f5f6fa;
+      --card-bg: rgba(255, 255, 255, 0.85);
+      --text-color: #333333;
+      --text-light: #636e72;
+      --shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+      --transition: all 0.3s ease;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px;
+      color: var(--text-color);
+      line-height: 1.6;
+      position: relative;
+    }
+
+    body::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: url('bg.jpeg') center/cover no-repeat fixed;
+      filter: blur(8px);
+      z-index: -2;
+    }
+
+    body::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(255, 255, 255, 0.5);
+      z-index: -1;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 30px;
+      width: 100%;
+    }
+
+    h1 {
+      color: var(--dark-color);
+      margin-bottom: 10px;
+      font-size: 2.5rem;
+      font-weight: 700;
+      background: linear-gradient(90deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #9400d3);
+      background-size: 400% 400%;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      position: relative;
+      display: inline-block;
+      animation: rainbow 8s ease infinite;
+    }
+
+    @keyframes rainbow {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    h1::after {
+      content: '';
+      position: absolute;
+      bottom: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 80px;
+      height: 4px;
+      background: linear-gradient(90deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #9400d3);
+      background-size: 400% 400%;
+      border-radius: 2px;
+      animation: rainbow 8s ease infinite;
+    }
+
+    .subtitle {
+      color: var(--text-light);
+      font-size: 1.1rem;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .server-container {
+      display: grid;
+      gap: 25px;
+      max-width: 900px;
+      width: 100%;
+    }
+
+    .server-card {
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 25px;
+      box-shadow: var(--shadow);
+      display: flex;
+      align-items: center;
+      transition: var(--transition);
+      min-height: 120px;
+      position: relative;
+      overflow: hidden;
+      backdrop-filter: blur(5px);
+    }
+
+    .server-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 5px;
+      height: 100%;
+      background: var(--warning-color);
+      transition: var(--transition);
+    }
+
+    .server-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+    }
+
+    .server-card:hover::before {
+      width: 8px;
+    }
+
+    .server-logo {
+      width: 70px;
+      height: 70px;
+      border-radius: 12px;
+      object-fit: cover;
+      margin-right: 25px;
+      background-color: var(--light-color);
+      padding: 5px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+      transition: var(--transition);
+    }
+
+    .server-card:hover .server-logo {
+      transform: scale(1.05);
+    }
+
+    .server-info {
+      flex: 1;
+    }
+
+    .server-info h3 {
+      margin: 0 0 8px 0;
+      color: var(--dark-color);
+      font-size: 1.3rem;
+      font-weight: 600;
+    }
+
+    .server-info p {
+      margin: 6px 0;
+      color: var(--text-light);
+      display: flex;
+      align-items: center;
+    }
+
+    .server-info strong {
+      color: var(--dark-color);
+      min-width: 80px;
+      display: inline-block;
+    }
+
+    .error {
+      color: var(--danger-color);
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+    }
+
+    .error i {
+      margin-right: 8px;
+    }
+
+    footer {
+      margin-top: 50px;
+      font-size: 0.9rem;
+      color: var(--text-light);
+      text-align: center;
+      width: 100%;
+    }
+
+    footer a {
+      color: var(--primary-color);
+      text-decoration: none;
+      transition: var(--transition);
+    }
+
+    footer a:hover {
+      color: var(--dark-color);
+      text-decoration: underline;
+    }
+
+    .loading-container {
+      display: flex;
+      align-items: center;
+      width: 100%;
+    }
+
+    .loading-spinner {
+      border: 3px solid rgba(108, 92, 231, 0.2);
+      border-top: 3px solid var(--primary-color);
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      animation: spin 1s linear infinite;
+      margin-right: 15px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .online::before {
+      background: var(--success-color) !important;
+    }
+
+    .offline::before {
+      background: var(--danger-color) !important;
+    }
+
+    .refresh-btn {
+      background: var(--primary-color);
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      transition: var(--transition);
+      margin-top: 10px;
+    }
+
+    .refresh-btn:hover {
+      background: #5649c0;
+      transform: translateY(-2px);
+    }
+
+    .refresh-btn i {
+      margin-right: 6px;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      margin-left: 10px;
+      vertical-align: middle;
+    }
+
+    .status-online {
+      background: rgba(0, 184, 148, 0.1);
+      color: var(--success-color);
+    }
+
+    .status-offline {
+      background: rgba(214, 48, 49, 0.1);
+      color: var(--danger-color);
+    }
+
+    @media (max-width: 768px) {
+      .server-card {
+        flex-direction: column;
+        text-align: center;
+        padding: 20px;
+      }
+
+      .server-logo {
+        margin-right: 0;
+        margin-bottom: 15px;
+      }
+
+      .server-info p {
+        justify-content: center;
+      }
+
+      h1 {
+        font-size: 2rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>服务器监控</h1>
+    <p class="subtitle">Powered By 3il33n</p>
+  </div>
+
+  <div class="server-container">
+    <div id="server-game" class="server-card">
+      <div class="loading-container">
+        <div class="loading-spinner"></div>
+        <p>正在检测 game.eileen.pub...</p>
+      </div>
+    </div>
+    <div id="server-mygo" class="server-card">
+      <div class="loading-container">
+        <div class="loading-spinner"></div>
+        <p>正在检测 mygo.eileen.pub...</p>
+      </div>
+    </div>
+    <div id="server-pg" class="server-card">
+      <div class="loading-container">
+        <div class="loading-spinner"></div>
+        <p>正在检测 PG服(Gmod)...</p>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <p>© <a href="https://3il33n.com" target="_blank">Copyright 2025 3il33n</a>  | 最后更新: <span id="update-time"></span></p>
+  </footer>
+
+  <script>
+    const servers = [
+      { ip: 'game.eileen.pub', elementId: 'server-game' },
+      { ip: 'mygo.eileen.pub', elementId: 'server-mygo' }
+    ];
+
+    // 设置更新时间
+    document.getElementById('update-time').textContent = new Date().toLocaleString();
+
+    function fetchServerStatus(server) {
+      const element = document.getElementById(server.elementId);
+      element.innerHTML = `
+        <div class="loading-container">
+          <div class="loading-spinner"></div>
+          <p>正在检测 ${server.ip}...</p>
+        </div>
+      `;
+
+      fetch(`https://list.mczfw.cn/api/${server.ip}`)
+        .then(response => {
+          if (!response.ok) throw new Error('Network response was not ok');
+          return response.json();
+        })
+        .then(data => {
+          const isOnline = data && data.p !== undefined && data.mp !== undefined;
+          const statusClass = isOnline ? 'status-online' : 'status-offline';
+          const statusText = isOnline ? '在线' : '离线';
+          
+          const html = `
+            <img src="${data.logo || 'https://via.placeholder.com/70?text=Server'}" 
+                 alt="服务器 ${server.ip} 图标" 
+                 class="server-logo" 
+                 loading="lazy" 
+                 onerror="this.src='https://via.placeholder.com/70?text=Server'" />
+            <div class="server-info">
+              <h3>${data.motd || server.ip} <span class="status-badge ${statusClass}">${statusText}</span></h3>
+              <p><strong>IP：</strong> ${server.ip}</p>
+              <p><strong>在线人数：</strong> ${isOnline ? data.p : 'N/A'} / ${isOnline ? data.mp : 'N/A'}</p>
+              <p><strong>延迟：</strong> ${isOnline ? (data.ping || 'N/A') : 'N/A'} ms</p>
+              <button class="refresh-btn" onclick="fetchServerStatus(${JSON.stringify(server).replace(/"/g, '&quot;')})">
+                <i class="fas fa-sync-alt"></i>刷新状态
+              </button>
+            </div>
+          `;
+          element.innerHTML = html;
+          element.classList.toggle('online', isOnline);
+          element.classList.toggle('offline', !isOnline);
+        })
+        .catch(error => {
+          element.innerHTML = `
+            <div class="server-info">
+              <h3>${server.ip} <span class="status-badge status-offline">离线</span></h3>
+              <p class="error"><i class="fas fa-exclamation-circle"></i> 无法获取服务器信息</p>
+              <p>${error.message}</p>
+              <button class="refresh-btn" onclick="fetchServerStatus(${JSON.stringify(server).replace(/"/g, '&quot;')})">
+                <i class="fas fa-sync-alt"></i>重试
+              </button>
+            </div>
+          `;
+          element.classList.add('offline');
+          element.classList.remove('online');
+          console.error('获取失败:', error);
+        });
+    }
+    
+    function fetchPGStatus() {
+      const element = document.getElementById('server-pg');
+      element.innerHTML = `
+        <div class="loading-container">
+          <div class="loading-spinner"></div>
+          <p>正在检测 PG服(Gmod)...</p>
+        </div>
+      `;
+      
+      fetch('https://api.gamemonitoring.net/servers/7473015')
+        .then(response => {
+          if (!response.ok) throw new Error('Network response was not ok');
+          return response.json();
+        })
+        .then(data => {
+          const serverData = data.response;
+          const isOnline = serverData && serverData.online !== undefined ? 
+                          serverData.online : 
+                          (serverData && serverData.numplayers !== undefined);
+          const statusClass = isOnline ? 'status-online' : 'status-offline';
+          const statusText = isOnline ? '在线' : '离线';
+          
+          const html = `
+            <img src="./pg.png" 
+                 alt="Gmod服务器图标" 
+                 class="server-logo" 
+                 loading="lazy"
+                 onerror="this.src='https://via.placeholder.com/70?text=GMod'" />
+            <div class="server-info">
+              <h3>${serverData?.name || 'PG服(Gmod)'} <span class="status-badge ${statusClass}">${statusText}</span></h3>
+              <p><strong>IP：</strong> ${serverData?.connect || 'N/A'}</p>
+              <p><strong>在线人数：</strong> ${isOnline ? (serverData?.numplayers || 0) : 'N/A'} / ${isOnline ? (serverData?.maxplayers || 'N/A') : 'N/A'} (${isOnline ? (serverData?.bots || 0) : 'N/A'} 个机器人)</p>
+              <p><strong>当前地图：</strong> ${isOnline ? (serverData?.map || '未知') : 'N/A'}</p>
+              <p><strong>游戏模式：</strong> ${isOnline ? (serverData?.gamemode || '未知') : 'N/A'}</p>
+              <p><strong>版本：</strong> ${isOnline ? (serverData?.version || '未知') : 'N/A'}</p>
+              <button class="refresh-btn" onclick="fetchPGStatus()">
+                <i class="fas fa-sync-alt"></i>刷新状态
+              </button>
+            </div>
+          `;
+          element.innerHTML = html;
+          element.classList.toggle('online', isOnline);
+          element.classList.toggle('offline', !isOnline);
+        })
+        .catch(error => {
+          element.innerHTML = `
+            <div class="server-info">
+              <h3>PG服(Gmod) <span class="status-badge status-offline">离线</span></h3>
+              <p class="error"><i class="fas fa-exclamation-circle"></i> 无法获取服务器信息</p>
+              <p>${error.message}</p>
+              <button class="refresh-btn" onclick="fetchPGStatus()">
+                <i class="fas fa-sync-alt"></i>重试
+              </button>
+            </div>
+          `;
+          element.classList.add('offline');
+          element.classList.remove('online');
+          console.error('获取PG服失败:', error);
+        });
+    }
+
+    // 初始加载
+    servers.forEach(server => fetchServerStatus(server));
+    fetchPGStatus();
+    
+    // 每5分钟自动刷新一次
+    setInterval(() => {
+      servers.forEach(server => fetchServerStatus(server));
+      fetchPGStatus();
+    }, 5 * 60 * 1000);
+  </script>
+
+</body>
+</html>
